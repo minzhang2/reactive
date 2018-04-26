@@ -1,15 +1,18 @@
 import { React, ReactDOM } from './reactive';
 
-function handleClick(ev) {
-	console.log(arguments)
-	debugger
+function handleChild(ev) {
+	console.log('handleChild')
+}
+
+function handleParent(ev) {
+	console.log('handleParent')
 }
 
 const content = (
-  <div>
-    <div onClick={handleClick}>eeee</div>
+  <div onClick={handleParent}>
+    <div onClick={handleChild}>eeee</div>
     <div id="ss">fsgsg</div>
-    <div onClick={handleClick}>ffffffff</div>
+    <div>ffffffff</div>
     sss
   </div>
 )

@@ -95,6 +95,7 @@ const ReactEvent = {
 	events: {},
 	// 避免事件的多次绑定，通过遍历对同一类型事件只绑定一次
 	// 通过target判断不同事件，触发时执行对应事件
+	// 当前是对target进行缓存，必然会导致内存占用，后期将改为domId进行标识
 	bind() {
 		const events = this.events;
 		for(let event in events) {
@@ -102,7 +103,8 @@ const ReactEvent = {
 				// todo 可以对原生事件进行一些封装
 				const target = ev.target || ev.srcElement;
 				events[event].forEach(item => {
-					if(target === item.target) {
+					// 绑定事件的元素节点是否包含触发的节点
+					if(item.target.contains(target)) {
 						item.handleFn.call(target, ev);
 					}
 				})
