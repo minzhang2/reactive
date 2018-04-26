@@ -70,23 +70,39 @@ const ReactElement = {
     
   },
 	setAttribute(ele, attr, value) {
-		if(attr === 'className') { // className -> class 
-			attr = 'class'
-		}
+		let event;
+		if(attr === null) return;
+		if(attr === 'className') attr = 'class'; // className -> class
 		
-		if(attr === 'className') { // style
-			ele.setAttribute(attr, value)
-		}else if(attr = /^on(\w+)$/.exec(attr)) { // event
-			attr = attr[1].toLowerCase();
+		if(event = /^on(\w+)$/.exec(attr)) { // event
+			event = event[1].toLowerCase();
 			value = typeof value === 'function' ? value : noop;
-			!(attr in ReactEvent.events) && (ReactEvent.events[attr] = []);
-			ReactEvent.events[attr].push({
-				target: ele,
+			!(event in ReactEvent.events) && (ReactEvent.events[event] = []);
+			// unshift: 保证子代事件先触发
+			ReactEvent.events[event].unshift({
+				ele,
 				handleFn: value
 			});
-//			document.addEventListener(attr, (ev) => {
-//				debugger
-//			}, false);
+		}else if(attr === 'style') { // style
+			if(!value) {
+				return;
+			}else if(typeof value === 'object') {
+				let cssText = '';
+				for(let prop in value) {
+					const item = value[prop];
+					prop = utils.hyphenate(prop);
+					cssText += `${prop}:${item}${typeof item === 'number' ? 'px' : ''};`;
+				}
+				value = cssText;
+			}
+			ele.style.cssText = value;
+		}else {
+			// dom自带属性可直接添加，否则需要使用setAttribute
+			if(attr in ele) {
+				ele[attr] = value || '';
+			}else if(value) {
+				ele.setAttribute(attr, value)
+			}
 		}
   }
 }
@@ -98,18 +114,34 @@ const ReactEvent = {
 	// 当前是对target进行缓存，必然会导致内存占用，后期将改为domId进行标识
 	bind() {
 		const events = this.events;
+		let stopPropagation = false; // 是否使用阻止冒泡的标志位
 		for(let event in events) {
 			document.addEventListener(event, (ev) => {
 				// todo 可以对原生事件进行一些封装
 				const target = ev.target || ev.srcElement;
-				events[event].forEach(item => {
-					// 绑定事件的元素节点是否包含触发的节点
-					if(item.target.contains(target)) {
-						item.handleFn.call(target, ev);
+				for(let i = 0; i < events[event].length; i++) {
+					const { ele, handleFn } = events[event][i];
+					ev.stopPropagation = () => stopPropagation = true;
+					if(stopPropagation) { // 如果当前事件阻止冒泡则中断循环
+						stopPropagation = false;
+						break;
 					}
-				})
+					// 绑定事件的元素节点是否包含触发的节点
+					if(ele.contains(target)) {
+						handleFn.call(target, ev);
+					}
+				}
 			}, false)
 		}
+	}
+}
+
+const utils = {
+	camelize(string) {
+		return string.replace(/-(\w)/g, ($0, $1) => $1.toUpperCase())
+	},
+	hyphenate(string) {
+		return string.replace(/[A-Z]/g, ($0) => `-${$0.toLowerCase()}`)
 	}
 }
 
