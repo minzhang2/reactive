@@ -13,6 +13,12 @@ function handleParent(ev) {
 	console.log('handleParent')
 }
 
+function HelloWorld(prop) {
+	return (
+		<div>{prop},HelloWorld</div>
+	)
+}
+
 const content = (
   <div id="parent" onClick={handleParent} data-v="sss">
     <div id="child1" onClick={handleChild1} style={{
@@ -27,6 +33,7 @@ const content = (
   </div>
 )
 
-console.log(content)
+//console.log(HelloWorld)
 
 ReactDOM.render(content, document.getElementById('root'));
+//ReactDOM.render(HelloWorld, document.getElementById('root'));

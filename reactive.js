@@ -1,80 +1,89 @@
-const noop = function() {}
+const noop = function () {}
 
 const React = {
-  Component() {
-    
-  },
-  createElement(type, attrs, ...children) {
-    return {
-      type,
-      attrs,
-      children
-    }
-  },
+	Component(props, context, updater) {
+		this.props = props;
+		this.context = context;
+		this.refs = null;
+		this.updater = updater || noop;
+	},
+	ReactEmptyComponent() {
+
+	},
+	ReactTextComponent() {
+
+	},
+	createElement(type, attrs, ...children) {
+		return {
+			type,
+			attrs,
+			children
+		}
+	},
 }
 
 const ReactDOM = {
-  render(node, container, cb) {
-    const element = ReactElement.ReactComponent(node);
+	render(node, container, cb) {
+		const element = ReactElement.instantiateReactComponent(node);
 		ReactEvent.bind();
-    container.appendChild(element);
-  },
+		container.appendChild(element);
+	},
 }
 
 const ReactElement = {
 	/*
-    null/false: 创建评论节点
+    null/false: 创建注释节点
     string/number: 创建文本节点
     object: 
       type === string: 创建dom节点
       type !== string: 创建自定义组件
   */
-	ReactComponent(node) {
+	instantiateReactComponent(node) {
 		let instance;
-    if(node === null || node === false) {
-       instance = ReactElement.ReactDOMEmptyComponent();
-    }else if(typeof node === 'string' || typeof node === 'number') {
-       instance = ReactElement.ReactDOMTextComponent(node);
-    }else if(typeof node === 'object') {
-      if(typeof node.type === 'string') {
-         instance = ReactElement.ReactDOMComponent(node);
-      }else {
-        
-      }
-    }
+		if (node === null || node === false) {
+			instance = ReactElement.ReactDOMEmptyComponent();
+		} else if (typeof node === 'string' || typeof node === 'number') {
+			instance = ReactElement.ReactDOMTextComponent(node);
+		} else if (typeof node === 'object') {
+			if (typeof node.type === 'string') {
+				instance = ReactElement.ReactDOMComponent(node);
+			} else if (typeof node.type === 'function') {
+
+			}
+		}
 		return instance;
 	},
 	// 渲染空节点
-  ReactDOMEmptyComponent() {
-    return document.createComment('')
-  },
+	ReactDOMEmptyComponent() {
+		return document.createComment('')
+	},
 	// 渲染文本节点
-  ReactDOMTextComponent(string) {
-    return document.createTextNode(string)
-  },
+	ReactDOMTextComponent(string) {
+		return document.createTextNode(string)
+	},
 	// 渲染dom节点
-  ReactDOMComponent(node) {
-    const ele = document.createElement(node.type);
-    const attrs = node.attrs;
-    const children = node.children;
-    attrs && Object.keys(attrs).forEach(attr => {
+	ReactDOMComponent(node) {
+		const ele = document.createElement(node.type);
+		const attrs = node.attrs;
+		const children = node.children;
+		attrs && Object.keys(attrs).forEach(attr => {
 			ReactElement.setAttribute(ele, attr, attrs[attr])
 		});
-    children && children.forEach(child => {
-			ele.appendChild(ReactElement.ReactComponent(child))
+		children && children.forEach(child => {
+			ele.appendChild(ReactElement.instantiateReactComponent(child))
 		});
-    return ele;
-  },
+		return ele;
+	},
 	// 渲染自定义节点
-  ReactCompositeComponent() {
-    
-  },
+	ReactCompositeComponent() {
+
+	},
 	setAttribute(ele, attr, value) {
 		let event;
-		if(attr === null) return;
-		if(attr === 'className') attr = 'class'; // className -> class
-		
-		if(event = /^on(\w+)$/.exec(attr)) { // event
+		if (attr === null) return;
+		if (attr === 'className') attr = 'class'; // className -> class
+
+		if (event = /^on(\w+)$/.exec(attr)) { // event
 			event = event[1].toLowerCase();
 			value = typeof value === 'function' ? value : noop;
 			!(event in ReactEvent.events) && (ReactEvent.events[event] = []);
@@ -83,12 +92,12 @@ const ReactElement = {
 				ele,
 				handleFn: value
 			});
-		}else if(attr === 'style') { // style
-			if(!value) {
+		} else if (attr === 'style') { // style
+			if (!value) {
 				return;
-			}else if(typeof value === 'object') {
+			} else if (typeof value === 'object') {
 				let cssText = '';
-				for(let prop in value) {
+				for (let prop in value) {
 					const item = value[prop];
 					prop = utils.hyphenate(prop);
 					cssText += `${prop}:${item}${typeof item === 'number' ? 'px' : ''};`;
@@ -96,15 +105,15 @@ const ReactElement = {
 				value = cssText;
 			}
 			ele.style.cssText = value;
-		}else {
+		} else {
 			// dom自带属性可直接添加，否则需要使用setAttribute
-			if(attr in ele) {
+			if (attr in ele) {
 				ele[attr] = value || '';
-			}else if(value) {
+			} else if (value) {
 				ele.setAttribute(attr, value)
 			}
 		}
-  }
+	}
 }
 
 const ReactEvent = {
@@ -115,19 +124,22 @@ const ReactEvent = {
 	bind() {
 		const events = this.events;
 		let stopPropagation = false; // 是否使用阻止冒泡的标志位
-		for(let event in events) {
+		for (let event in events) {
 			document.addEventListener(event, (ev) => {
 				// todo 可以对原生事件进行一些封装
 				const target = ev.target || ev.srcElement;
-				for(let i = 0; i < events[event].length; i++) {
-					const { ele, handleFn } = events[event][i];
+				for (let i = 0; i < events[event].length; i++) {
+					const {
+						ele,
+						handleFn
+					} = events[event][i];
 					ev.stopPropagation = () => stopPropagation = true;
-					if(stopPropagation) { // 如果当前事件阻止冒泡则中断循环
+					if (stopPropagation) { // 如果当前事件阻止冒泡则中断循环
 						stopPropagation = false;
 						break;
 					}
 					// 绑定事件的元素节点是否包含触发的节点
-					if(ele.contains(target)) {
+					if (ele.contains(target)) {
 						handleFn.call(target, ev);
 					}
 				}
